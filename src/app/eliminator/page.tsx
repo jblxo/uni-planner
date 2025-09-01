@@ -11,7 +11,7 @@ export default async function Page() {
   const conflicts = await getConflictsOrdered(userId);
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <ConflictEliminator initial={conflicts as any} />
+      <ConflictEliminator initial={conflicts} />
     </div>
   );
 }

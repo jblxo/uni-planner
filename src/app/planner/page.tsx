@@ -11,7 +11,7 @@ export default async function Page() {
   const data = await getPlannerData(userId);
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <Planner initialLectures={data.lectures as any} initialCourses={data.courses as any} />
+      <Planner initialLectures={data.lectures} initialCourses={data.courses} />
     </div>
   );
 }

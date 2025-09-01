@@ -93,9 +93,9 @@ function UserMenu({ name, image, email }: { name?: string; image?: string; email
             Signed in as
             <div className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{name || email || "User"}</div>
           </div>
-          <a href="/api/auth/signout" className="block px-3 py-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm">
+          <Link href="/api/auth/signout" className="block px-3 py-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm">
             Sign out
-          </a>
+          </Link>
         </div>
       )}
     </div>

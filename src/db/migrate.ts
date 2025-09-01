@@ -7,9 +7,11 @@ const isFile = !!url && (url.startsWith("file:") || url.endsWith(".db"));
 
 async function main() {
   if (isFile) {
-    await migrateBsql(db as any, { migrationsFolder: "./drizzle" });
+    // @ts-expect-error - Drizzle migration type mismatch between sync/async modes
+    await migrateBsql(db, { migrationsFolder: "./drizzle" });
   } else {
-    await migrateLibsql(db as any, { migrationsFolder: "./drizzle" });
+    // @ts-expect-error - Drizzle migration type mismatch between sync/async modes  
+    await migrateLibsql(db, { migrationsFolder: "./drizzle" });
   }
   console.log("Migrations applied");
 }

@@ -11,7 +11,7 @@ export default async function Page() {
   const rows = await getCoursesWithCounts(userId);
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <CourseManager initial={rows as any} />
+      <CourseManager initial={rows} />
     </div>
   );
 }

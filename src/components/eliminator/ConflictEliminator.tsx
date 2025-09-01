@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { setCourseArchivedAction } from "@/app/actions";
 import { useRouter } from "next/navigation";
@@ -33,11 +33,8 @@ export function ConflictEliminator({ initial }: { initial: Conflict[] }) {
 
   // If server refreshed and new "initial" arrives, sync (protect local progress)
   useEffect(() => {
-    // Merge-dedupe by pair key, but keep already removed ones removed
-    setConflicts((prev) => {
-      const removedPairs = new Set<string>();
-      // Compute existing set for quick compare
-      const prevKeys = new Set(prev.map((c) => [c.a.courseId, c.b.courseId].sort().join("::")));
+    // Merge-dedupe by pair key
+    setConflicts(() => {
       const merged: Conflict[] = [];
       const added = new Set<string>();
       for (const c of initial) {
@@ -120,7 +117,7 @@ function SwipeCard({ side, title, onSwipeOut, onClick, disabled }: { side: "left
     dx.current = 0;
     isPointer.current = false;
   }
-  function onPointerUp(e: React.PointerEvent) {
+  function onPointerUp() {
     if (disabled || !isPointer.current) return;
     const delta = dx.current;
     const valid = side === "left" ? delta < -threshold : delta > threshold;

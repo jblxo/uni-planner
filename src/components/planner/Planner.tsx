@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DAYS, Day, buildWeeksFromDates, weekKeyForDate } from "@/lib/weeks";
+import { Day, buildWeeksFromDates, weekKeyForDate } from "@/lib/weeks";
 import { MIN_HOUR, MAX_HOUR, rangesOverlap, timeToMinutes } from "@/lib/time";
 import { ScheduleGrid } from "./ScheduleGrid";
 import { MultiWeekMatrix } from "./MultiWeekMatrix";
@@ -27,13 +25,13 @@ export type Lecture = {
 
 type Props = {
   initialLectures: Lecture[];
-  initialCourses: Array<{ id: string; name: string; credits: number; color: string | null; type?: "mandatory" | "mo" | null }>;
+  initialCourses: Array<{ id: string; name: string; credits: number; color: string | null; type?: string | null }>;
 };
 
 export function Planner({ initialLectures, initialCourses }: Props) {
   const router = useRouter();
-  const [lectures, setLectures] = useState<Lecture[]>(initialLectures);
-  const weeksDynamic = useMemo(() => buildWeeksFromDates(lectures.map((l) => (l as any).date ?? (l as any).date)), [lectures]);
+  const [lectures] = useState<Lecture[]>(initialLectures);
+  const weeksDynamic = useMemo(() => buildWeeksFromDates(lectures.map((l) => l.date)), [lectures]);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   useEffect(() => {
     if (!selectedWeek && weeksDynamic[0]) setSelectedWeek(weeksDynamic[0].key);
@@ -48,11 +46,7 @@ export function Planner({ initialLectures, initialCourses }: Props) {
     for (const c of initialCourses) if (c.color) map[c.name] = c.color;
     return map;
   });
-  const courseTypes = useMemo(() => {
-    const map: Record<string, "mandatory" | "mo" | null | undefined> = {};
-    for (const c of initialCourses) map[c.name] = (c as any).type ?? null;
-    return map;
-  }, [initialCourses]);
+  // Removed unused courseTypes
 
   // Form state
   const [name, setName] = useState("");
@@ -67,19 +61,16 @@ export function Planner({ initialLectures, initialCourses }: Props) {
   ]);
   const [deletingId, setDeletingId] = useState<string>("");
 
-  const selectedWeekLectures = useMemo(
-    () => lectures.filter((l: any) => weekKeyForDate((l as any).date) === selectedWeek),
-    [lectures, selectedWeek]
-  );
+  // Removed unused selectedWeekLectures
 
   // Global and per-week deduped conflict counts (by course pair)
   const { globalConflictCount, perWeekConflictCount } = useMemo(() => {
     // Group by date for efficient overlap checks
     const byDate = new Map<string, Lecture[]>();
     for (const l of lectures) {
-      const arr = byDate.get((l as any).date) || [];
+      const arr = byDate.get(l.date) || [];
       arr.push(l);
-      byDate.set((l as any).date, arr);
+      byDate.set(l.date, arr);
     }
     const globalPairs = new Set<string>();
     const perWeekPairs = new Map<string, Set<string>>();
@@ -193,7 +184,7 @@ export function Planner({ initialLectures, initialCourses }: Props) {
     if (!l) return;
     setEditingId(id);
     setName(l.name);
-    setDate((l as any).date ?? "");
+    setDate(l.date ?? "");
     setStart(l.start);
     setEnd(l.end);
     setCredits(String(l.credits ?? 0));
@@ -416,7 +407,7 @@ export function Planner({ initialLectures, initialCourses }: Props) {
                 <tr key={l.id} className="border-b border-neutral-100 dark:border-neutral-900">
                   <td className="py-2 pr-2 max-w-[240px] truncate" title={l.name}>{l.name}</td>
                   <td className="py-2 pr-2">{l.day}</td>
-                  <td className="py-2 pr-2">{(l as any).date ?? ''}</td>
+                  <td className="py-2 pr-2">{l.date ?? ''}</td>
                   <td className="py-2 pr-2">{l.start}–{l.end}</td>
                   <td className="py-2 pr-2">{l.credits ?? 0}</td>
                   <td className="py-2 pr-2">

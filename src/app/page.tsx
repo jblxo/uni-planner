@@ -33,6 +33,3 @@ export default async function Home() {
 }
 
 // Tailwind utility for a slower spin
-declare global {
-  namespace JSX { interface IntrinsicElements {}} // noop to satisfy TS in this file
-}

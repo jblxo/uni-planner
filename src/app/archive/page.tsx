@@ -11,7 +11,7 @@ export default async function Page() {
   const rows = await getArchivedCoursesWithCounts(userId);
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <ArchiveManager initial={rows as any} />
+      <ArchiveManager initial={rows} />
     </div>
   );
 }

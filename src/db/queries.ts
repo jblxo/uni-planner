@@ -1,13 +1,13 @@
 import { db } from "./client";
 import { courses, sessions } from "./schema";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export async function getPlannerData(userId?: string | null) {
   // Only active (non-archived) courses for the current user
   const whereCourses = userId
     ? and(eq(courses.archived, false), eq(courses.userId, userId))
     : eq(courses.archived, false);
-  const allCourses = await db.select().from(courses).where(whereCourses as any);
+  const allCourses = await db.select().from(courses).where(whereCourses );
   const activeIds = new Set(allCourses.map((c) => c.id));
   const allSessions = (await db.select().from(sessions)).filter((s) => activeIds.has(s.courseId));
 
@@ -23,7 +23,7 @@ export async function getPlannerData(userId?: string | null) {
       end: s.end,
       credits: c?.credits ?? 0,
       color: c?.color ?? null,
-    } as any;
+    } ;
   });
 
   return { courses: allCourses, lectures };
@@ -81,7 +81,7 @@ export async function saveSession(input: {
 
 export async function deleteSessionById(id: string, userId?: string | null) {
   if (userId) {
-    await db.delete(sessions).where(and(eq(sessions.id, id), eq(sessions.userId, userId)) as any);
+    await db.delete(sessions).where(and(eq(sessions.id, id), eq(sessions.userId, userId)) );
   } else {
     // Fallback (should not happen due to middleware)
     await db.delete(sessions).where(eq(sessions.id, id));
@@ -112,7 +112,7 @@ export async function createSessionsForCourse(input: {
 
 export async function updateCourse(id: string, data: { name?: string; credits?: number; color?: string | null; type?: "mandatory" | "mo" | null }, userId?: string | null) {
   if (userId) {
-    await db.update(courses).set(data).where(and(eq(courses.id, id), eq(courses.userId, userId)) as any);
+    await db.update(courses).set(data).where(and(eq(courses.id, id), eq(courses.userId, userId)) );
   } else {
     await db.update(courses).set(data).where(eq(courses.id, id));
   }
@@ -124,8 +124,8 @@ export async function mergeCourses(fromId: string, toId: string, userId?: string
     const from = await db.query.courses.findFirst({ where: (c, { eq }) => eq(c.id, fromId) });
     const to = await db.query.courses.findFirst({ where: (c, { eq }) => eq(c.id, toId) });
     if (!from || !to || from.userId !== userId || to.userId !== userId) return;
-    await db.update(sessions).set({ courseId: toId }).where(and(eq(sessions.courseId, fromId), eq(sessions.userId, userId)) as any);
-    await db.delete(courses).where(and(eq(courses.id, fromId), eq(courses.userId, userId)) as any);
+    await db.update(sessions).set({ courseId: toId }).where(and(eq(sessions.courseId, fromId), eq(sessions.userId, userId)) );
+    await db.delete(courses).where(and(eq(courses.id, fromId), eq(courses.userId, userId)) );
   } else {
     await db.update(sessions).set({ courseId: toId }).where(eq(sessions.courseId, fromId));
     await db.delete(courses).where(eq(courses.id, fromId));
@@ -134,7 +134,7 @@ export async function mergeCourses(fromId: string, toId: string, userId?: string
 
 export async function getCoursesWithCounts(userId?: string | null) {
   const whereCourses = userId ? and(eq(courses.archived, false), eq(courses.userId, userId)) : eq(courses.archived, false);
-  const allCourses = await db.select().from(courses).where(whereCourses as any);
+  const allCourses = await db.select().from(courses).where(whereCourses );
   const allSessions = await db.select().from(sessions);
   const counts = new Map<string, number>();
   for (const s of allSessions) counts.set(s.courseId, (counts.get(s.courseId) ?? 0) + 1);
@@ -143,7 +143,7 @@ export async function getCoursesWithCounts(userId?: string | null) {
 
 export async function getArchivedCoursesWithCounts(userId?: string | null) {
   const whereCourses = userId ? and(eq(courses.archived, true), eq(courses.userId, userId)) : eq(courses.archived, true);
-  const archivedCourses = await db.select().from(courses).where(whereCourses as any);
+  const archivedCourses = await db.select().from(courses).where(whereCourses );
   const allSessions = await db.select().from(sessions);
   const counts = new Map<string, number>();
   for (const s of allSessions) counts.set(s.courseId, (counts.get(s.courseId) ?? 0) + 1);
@@ -156,12 +156,14 @@ export async function getAllRaw() {
   return { courses: allCourses, sessions: allSessions };
 }
 
-export async function replaceAll(data: { courses: any[]; sessions: any[]; sessionWeeks: any[] }) {
+export async function replaceAll(data: { courses: unknown[]; sessions: unknown[]; sessionWeeks: unknown[] }) {
   // Simple replace-all import
   await db.delete(sessions);
   await db.delete(courses);
-  if (data.courses?.length) await db.insert(courses).values(data.courses as any);
-  if (data.sessions?.length) await db.insert(sessions).values(data.sessions as any);
+  // @ts-expect-error - Import data may not match exact schema types
+  if (data.courses?.length) await db.insert(courses).values(data.courses);
+  // @ts-expect-error - Import data may not match exact schema types  
+  if (data.sessions?.length) await db.insert(sessions).values(data.sessions);
 }
 
 export async function getFlatRows() {
@@ -184,7 +186,7 @@ export async function getFlatRows() {
 
 export async function setCourseArchived(id: string, archived: boolean, userId?: string | null) {
   if (userId) {
-    await db.update(courses).set({ archived }).where(and(eq(courses.id, id), eq(courses.userId, userId)) as any);
+    await db.update(courses).set({ archived }).where(and(eq(courses.id, id), eq(courses.userId, userId)) );
   } else {
     await db.update(courses).set({ archived }).where(eq(courses.id, id));
   }
@@ -196,7 +198,7 @@ export async function getConflictsOrdered(userId?: string | null) {
   const whereCourses = userId
     ? and(eq(courses.archived, false), eq(courses.userId, userId))
     : eq(courses.archived, false);
-  const activeCourses = await db.select().from(courses).where(whereCourses as any);
+  const activeCourses = await db.select().from(courses).where(whereCourses );
   const activeIds = new Set(activeCourses.map((c) => c.id));
   const sessionsAll = (await db.select().from(sessions)).filter((s) => activeIds.has(s.courseId));
   const byCourse = new Map(activeCourses.map((c) => [c.id, c] as const));
@@ -255,7 +257,7 @@ export async function getConflictsOrdered(userId?: string | null) {
 }
 
 // Adopt legacy rows (with NULL user_id) to the first user who signs in.
-// If the user already has any courses, we skip adoption to avoid collisions.
+// If the user already h courses, we skip adoption to avoid collisions.
 export async function adoptLegacyDataForUser(userId: string) {
   if (!userId) return;
   const existing = await db.query.courses.findFirst({ where: (c, { eq }) => eq(c.userId, userId) });

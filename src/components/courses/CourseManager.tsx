@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateCourseAction, mergeCoursesAction, createCourseAction } from "@/app/actions";
 
-type Row = { id: string; name: string; credits: number; color: string | null; sessionCount: number; type: "mandatory" | "mo" | null };
+type Row = { id: string; name: string; credits: number; color: string | null; sessionCount: number; type: string | null };
 
 export function CourseManager({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
@@ -14,7 +14,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
   const [newName, setNewName] = useState("");
   const [newCredits, setNewCredits] = useState("0");
   const [newColor, setNewColor] = useState<string>("#888888");
-  const [newType, setNewType] = useState<"mandatory" | "mo" | "" | null>("");
+  const [newType, setNewType] = useState<string | null>("");
   const [savingId, setSavingId] = useState<string>("");
   const [creating, startCreating] = useTransition();
   const [merging, startMerging] = useTransition();
@@ -64,7 +64,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
                   <select
                     className="border rounded px-2 py-2 bg-transparent w-full"
                     value={r.type ?? ""}
-                    onChange={(e) => setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, type: (e.target.value || null) as any } : x)))}
+                    onChange={(e) => setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, type: e.target.value || null } : x)))}
                   >
                     <option value="">—</option>
                     <option value="mandatory">Mandatory</option>
@@ -78,7 +78,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
                     disabled={savingId === r.id}
                     onClick={async () => {
                       setSavingId(r.id);
-                      await updateCourseAction(r.id, { name: r.name.trim(), credits: r.credits, color: r.color ?? undefined, type: r.type ?? null });
+                      await updateCourseAction(r.id, { name: r.name.trim(), credits: r.credits, color: r.color ?? undefined, type: (r.type === "mandatory" || r.type === "mo") ? r.type : null });
                       setSavingId("");
                     }}
                   >
@@ -109,7 +109,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
           </div>
           <div>
             <div className="text-sm font-medium">Type</div>
-            <select className="border rounded px-2 py-2 bg-transparent w-full" value={newType ?? ""} onChange={(e) => setNewType((e.target.value || null) as any)}>
+            <select className="border rounded px-2 py-2 bg-transparent w-full" value={newType ?? ""} onChange={(e) => setNewType(e.target.value || null)}>
               <option value="">—</option>
               <option value="mandatory">Mandatory</option>
               <option value="mo">Mandatory optional</option>
@@ -118,7 +118,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
           <div>
             <Button
               onClick={() => startCreating(async () => {
-                await createCourseAction({ name: newName, credits: Number(newCredits) || 0, color: newColor, type: (newType || undefined) as any });
+                await createCourseAction({ name: newName, credits: Number(newCredits) || 0, color: newColor, type: (newType === "mandatory" || newType === "mo") ? newType : null });
                 setNewName("");
               })}
               disabled={!newName.trim() || creating}

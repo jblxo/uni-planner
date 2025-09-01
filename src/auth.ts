@@ -18,15 +18,20 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, token }) {
-      if (session?.user) (session.user as any).id = token.sub;
+      if (session?.user && token.sub) {
+        (session.user as typeof session.user & { id: string }).id = token.sub;
+      }
       return session;
     },
   },
   events: {
     async signIn({ user }) {
       try {
-        await adoptLegacyDataForUser((user as any)?.id as string);
-      } catch (e) {
+        const userId = user?.id;
+        if (userId) {
+          await adoptLegacyDataForUser(userId);
+        }
+      } catch {
         // best-effort; ignore errors
       }
     },

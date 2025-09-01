@@ -82,7 +82,7 @@ export function ScheduleGrid({ weekKey, lectures, onDelete, onEdit, getColor }: 
   );
 }
 
-function DayColumn({ day, items, onDelete, onEdit, getColor }: { day: Day; items: LocalLecture[]; onDelete: (id: string) => void; onEdit?: (id: string) => void; getColor: (name: string) => string }) {
+function DayColumn({ items, onDelete, onEdit, getColor }: { day: Day; items: LocalLecture[]; onDelete: (id: string) => void; onEdit?: (id: string) => void; getColor: (name: string) => string }) {
   // Compute layout with overlap handling: overlapping items are placed side-by-side
   type Positioned = { item: LocalLecture; top: number; height: number; leftPct: number; widthPct: number };
 

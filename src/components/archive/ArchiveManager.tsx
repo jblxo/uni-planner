@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { setCourseArchivedAction } from "@/app/actions";
 
 type Row = { id: string; name: string; credits: number; color: string | null; sessionCount: number };
 
 export function ArchiveManager({ initial }: { initial: Row[] }) {
-  const [rows, setRows] = useState<Row[]>(initial);
+  const [rows] = useState<Row[]>(initial);
   const [reactivatingId, setReactivatingId] = useState<string>("");
-  const [isPending, startTransition] = useTransition();
+  // Remove unused transition variables
 
   async function reactivate(id: string) {
     setReactivatingId(id);

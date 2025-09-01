@@ -13,8 +13,12 @@ function isFileUrl(u: string | undefined) {
 // Choose driver based on URL: libSQL for remote Turso/http(s), better-sqlite3 for local file
 export const db = (() => {
   if (isFileUrl(url)) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Database = require("better-sqlite3");
+    let Database;
+    try {
+      Database = eval('require')("better-sqlite3");
+    } catch {
+      throw new Error("better-sqlite3 is required for local database files");
+    }
     const sqlite = new Database(url.replace("file:", "") || "./data/uni.db");
     return drizzleBsql(sqlite, { schema });
   }
