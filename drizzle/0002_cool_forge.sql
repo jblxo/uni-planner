@@ -1,0 +1,1 @@
+ALTER TABLE `courses` ADD `archived` integer DEFAULT false NOT NULL;
