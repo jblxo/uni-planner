@@ -16,7 +16,7 @@ export function Dialog({ open, onOpenChange, children }: { open: boolean; onOpen
 
 export function DialogContent({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={"w-full max-w-xl rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg p-4 " + (className || "")}> 
+    <div className={"w-full max-w-3xl rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg p-6 md:p-8 " + (className || "")}> 
       {children}
     </div>
   );
@@ -31,4 +31,3 @@ export function DialogTitle({ children }: { children: React.ReactNode }) {
 export function DialogFooter({ children }: { children: React.ReactNode }) {
   return <div className="mt-4 flex justify-end gap-2">{children}</div>;
 }
-

@@ -268,8 +268,8 @@ export function Planner({ initialLectures, initialCourses }: Props) {
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit lecture" : "Add lecture"}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
-            <div className="sm:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+            <div>
               <Label htmlFor="name">Course name</Label>
               <Input id="name" placeholder="Algorithms" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
@@ -293,20 +293,20 @@ export function Planner({ initialLectures, initialCourses }: Props) {
                 </div>
               </>
             ) : (
-              <div className="sm:col-span-7">
+              <div className="sm:col-span-2">
                 <Label>Sessions</Label>
                 <div className="mt-2 space-y-3">
                   {drafts.map((d, i) => (
-                    <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end rounded border border-neutral-200 dark:border-neutral-800 p-3">
-                      <div>
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end rounded border border-neutral-200 dark:border-neutral-800 p-3">
+                      <div className="min-w-0">
                         <Label>Date</Label>
                         <Input type="date" value={d.date} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)))} />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <Label>Start</Label>
                         <Input type="time" value={d.start} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))} />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <Label>End</Label>
                         <Input type="time" value={d.end} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))} />
                       </div>

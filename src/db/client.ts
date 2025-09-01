@@ -10,8 +10,15 @@ function isFileUrl(u: string | undefined) {
   return !!u && (u.startsWith("file:") || u.endsWith(".db"));
 }
 
+type DrizzleDb = ReturnType<typeof drizzleLibsql<typeof schema>> | ReturnType<typeof drizzleBsql<typeof schema>>;
+
 // Choose driver based on URL: libSQL for remote Turso/http(s), better-sqlite3 for local file
 export const db = (() => {
+  // During build phase with no URL, return null to prevent connection errors
+  if (process.env.NEXT_PHASE === "phase-production-build" && !url) {
+    return null as unknown as DrizzleDb;
+  }
+  
   if (isFileUrl(url)) {
     let Database;
     try {
@@ -22,6 +29,11 @@ export const db = (() => {
     const sqlite = new Database(url.replace("file:", "") || "./data/uni.db");
     return drizzleBsql(sqlite, { schema });
   }
-  const client = createClient({ url: url || "", authToken });
+  
+  if (!url) {
+    throw new Error("DATABASE_URL or TURSO_DATABASE_URL environment variable is required");
+  }
+  
+  const client = createClient({ url, authToken });
   return drizzleLibsql(client, { schema });
 })();
