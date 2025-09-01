@@ -11,6 +11,7 @@ import { MultiWeekMatrix } from "./MultiWeekMatrix";
 import { colorFromName, defaultHexFromName } from "@/lib/color";
 import { useRouter } from "next/navigation";
 import { deleteLectureAction, saveLectureAction, setCourseColorAction, saveBulkSessionsAction } from "@/app/actions";
+import { useToast } from "@/components/ui/toast";
 
 export type Lecture = {
   id: string;
@@ -30,7 +31,7 @@ type Props = {
 
 export function Planner({ initialLectures, initialCourses }: Props) {
   const router = useRouter();
-  const [lectures] = useState<Lecture[]>(initialLectures);
+  const lectures: Lecture[] = initialLectures;
   const weeksDynamic = useMemo(() => buildWeeksFromDates(lectures.map((l) => l.date)), [lectures]);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   useEffect(() => {
@@ -39,6 +40,7 @@ export function Planner({ initialLectures, initialCourses }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [statusMsg, setStatusMsg] = useState<string>("");
+  const toast = useToast();
 
   // Per-course custom colors
   const [courseColors, setCourseColors] = useState<Record<string, string>>(() => {
@@ -135,18 +137,23 @@ export function Planner({ initialLectures, initialCourses }: Props) {
         return alert(`Please choose times between ${MIN_HOUR}:00 and ${MAX_HOUR}:00`);
       if (!date) return alert("Pick a date.");
       startTransition(async () => {
-        await saveLectureAction({
-          id: editingId ?? undefined,
-          name: name.trim(),
-          credits: Number(credits) || 0,
-          date,
-          start,
-          end,
-        });
-        setEditingId(null);
-        setStatusMsg("Saved");
-        router.refresh();
-        setTimeout(() => setStatusMsg(""), 1200);
+        try {
+          await saveLectureAction({
+            id: editingId ?? undefined,
+            name: name.trim(),
+            credits: Number(credits) || 0,
+            date,
+            start,
+            end,
+          });
+          setEditingId(null);
+          setStatusMsg("Saved");
+          toast({ type: "success", message: "Lecture saved" });
+          router.refresh();
+          setTimeout(() => setStatusMsg(""), 1200);
+        } catch (e: any) {
+          toast({ type: "error", message: e?.message || "Failed to save" });
+        }
       });
     } else {
       // Validate all drafts
@@ -158,25 +165,36 @@ export function Planner({ initialLectures, initialCourses }: Props) {
         if (!d.date) return alert("Each session needs a date.");
       }
       startTransition(async () => {
-        await saveBulkSessionsAction({
-          name: name.trim(),
-          credits: Number(credits) || 0,
-          sessions: drafts.map((d) => ({ date: d.date, start: d.start, end: d.end })),
-        });
-        setName("");
-        setDrafts([{ date: "", start: "09:00", end: "10:30" }]);
-        setStatusMsg("Added");
-        router.refresh();
-        setTimeout(() => setStatusMsg(""), 1200);
+        try {
+          await saveBulkSessionsAction({
+            name: name.trim(),
+            credits: Number(credits) || 0,
+            sessions: drafts.map((d) => ({ date: d.date, start: d.start, end: d.end })),
+          });
+          setName("");
+          setDrafts([{ date: "", start: "09:00", end: "10:30" }]);
+          setStatusMsg("Added");
+          toast({ type: "success", message: "Sessions added" });
+          router.refresh();
+          setTimeout(() => setStatusMsg(""), 1200);
+        } catch (e: any) {
+          toast({ type: "error", message: e?.message || "Failed to add sessions" });
+        }
       });
     }
   }
 
   async function removeLecture(id: string) {
     setDeletingId(id);
-    await deleteLectureAction(id);
-    setDeletingId("");
-    router.refresh();
+    try {
+      await deleteLectureAction(id);
+      toast({ type: "success", message: "Lecture deleted" });
+    } catch (e: any) {
+      toast({ type: "error", message: e?.message || "Delete failed" });
+    } finally {
+      setDeletingId("");
+      router.refresh();
+    }
   }
 
   function beginEdit(id: string) {
@@ -377,7 +395,12 @@ export function Planner({ initialLectures, initialCourses }: Props) {
                   onChange={async (e) => {
                     const value = e.target.value;
                     setCourseColors((prev) => ({ ...prev, [c]: value }));
-                    await setCourseColorAction(c, value);
+                    try {
+                      await setCourseColorAction(c, value);
+                      toast({ type: "success", message: "Color updated" });
+                    } catch (e: any) {
+                      toast({ type: "error", message: e?.message || "Failed to update color" });
+                    }
                     router.refresh();
                   }}
                 />

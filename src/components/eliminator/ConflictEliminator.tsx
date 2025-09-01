@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { setCourseArchivedAction } from "@/app/actions";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 
 type Conflict = {
   date: string;
@@ -16,6 +17,7 @@ type Conflict = {
 export function ConflictEliminator({ initial }: { initial: Conflict[] }) {
   const [conflicts, setConflicts] = useState<Conflict[]>(initial);
   const router = useRouter();
+  const toast = useToast();
 
   const current = conflicts[0];
   const remaining = conflicts.length;
@@ -24,7 +26,12 @@ export function ConflictEliminator({ initial }: { initial: Conflict[] }) {
   async function choose(keepId: string, archiveId: string) {
     if (choosing) return;
     setChoosing(true);
-    await setCourseArchivedAction(archiveId, true);
+    try {
+      await setCourseArchivedAction(archiveId, true);
+      toast({ type: "success", message: "Decision saved" });
+    } catch (e: any) {
+      toast({ type: "error", message: e?.message || "Action failed" });
+    }
     // Remove all conflicts involving the archived course
     setConflicts((prev) => prev.filter((c) => c.a.courseId !== archiveId && c.b.courseId !== archiveId));
     router.refresh();

@@ -1,20 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { setCourseArchivedAction } from "@/app/actions";
+import { useToast } from "@/components/ui/toast";
 
 type Row = { id: string; name: string; credits: number; color: string | null; sessionCount: number };
 
 export function ArchiveManager({ initial }: { initial: Row[] }) {
-  const [rows] = useState<Row[]>(initial);
+  const [rows, setRows] = useState<Row[]>(initial);
+  const router = useRouter();
+  const toast = useToast();
+  useEffect(() => { setRows(initial); }, [initial]);
   const [reactivatingId, setReactivatingId] = useState<string>("");
   // Remove unused transition variables
 
   async function reactivate(id: string) {
     setReactivatingId(id);
-    await setCourseArchivedAction(id, false);
+    try {
+      await setCourseArchivedAction(id, false);
+      toast({ type: "success", message: "Course reactivated" });
+    } catch (e: any) {
+      toast({ type: "error", message: e?.message || "Reactivation failed" });
+    }
     setReactivatingId("");
+    router.refresh();
   }
 
   return (

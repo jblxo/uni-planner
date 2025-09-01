@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateCourseAction, mergeCoursesAction, createCourseAction } from "@/app/actions";
+import { updateCourseAction, mergeCoursesAction, createCourseAction, setCourseArchivedAction } from "@/app/actions";
+import { useToast } from "@/components/ui/toast";
 
 type Row = { id: string; name: string; credits: number; color: string | null; sessionCount: number; type: string | null };
 
 export function CourseManager({ initial }: { initial: Row[] }) {
+  const router = useRouter();
+  const toast = useToast();
   const [rows, setRows] = useState<Row[]>(initial);
+  useEffect(() => { setRows(initial); }, [initial]);
   const [mergeFrom, setMergeFrom] = useState<string>("");
   const [mergeTo, setMergeTo] = useState<string>("");
   const [newName, setNewName] = useState("");
@@ -18,6 +23,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
   const [savingId, setSavingId] = useState<string>("");
   const [creating, startCreating] = useTransition();
   const [merging, startMerging] = useTransition();
+  const [archivingId, setArchivingId] = useState<string>("");
 
   return (
     <div className="mx-auto max-w-[900px] space-y-6">
@@ -32,7 +38,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
               <th className="py-2 px-2 text-left">Color</th>
               <th className="py-2 px-2 text-left">Type</th>
               <th className="py-2 px-2 text-left">Sessions</th>
-              <th className="py-2 px-2 text-left">Save</th>
+              <th className="py-2 px-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -72,17 +78,43 @@ export function CourseManager({ initial }: { initial: Row[] }) {
                   </select>
                 </td>
                 <td className="px-2 py-2 w-24">{r.sessionCount}</td>
-                <td className="px-2 py-2 w-40">
+                <td className="px-2 py-2 w-[260px]">
                   <Button
                     size="sm"
                     disabled={savingId === r.id}
                     onClick={async () => {
                       setSavingId(r.id);
-                      await updateCourseAction(r.id, { name: r.name.trim(), credits: r.credits, color: r.color ?? undefined, type: (r.type === "mandatory" || r.type === "mo") ? r.type : null });
+                      try {
+                        await updateCourseAction(r.id, { name: r.name.trim(), credits: r.credits, color: r.color ?? undefined, type: (r.type === "mandatory" || r.type === "mo") ? r.type : null });
+                        toast({ type: "success", message: "Course saved" });
+                      } catch (e: any) {
+                        toast({ type: "error", message: e?.message || "Save failed" });
+                      }
                       setSavingId("");
+                      router.refresh();
                     }}
                   >
                     {savingId === r.id ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="ml-2"
+                    disabled={archivingId === r.id}
+                    onClick={async () => {
+                      if (!confirm(`Archive course "${r.name}"? You can restore it later in Archive.`)) return;
+                      setArchivingId(r.id);
+                      try {
+                        await setCourseArchivedAction(r.id, true);
+                        toast({ type: "info", message: "Course archived" });
+                      } catch (e: any) {
+                        toast({ type: "error", message: e?.message || "Archive failed" });
+                      }
+                      setArchivingId("");
+                      router.refresh();
+                    }}
+                  >
+                    {archivingId === r.id ? "Archiving…" : "Archive"}
                   </Button>
                 </td>
               </tr>
@@ -118,8 +150,14 @@ export function CourseManager({ initial }: { initial: Row[] }) {
           <div>
             <Button
               onClick={() => startCreating(async () => {
-                await createCourseAction({ name: newName, credits: Number(newCredits) || 0, color: newColor, type: (newType === "mandatory" || newType === "mo") ? newType : null });
+                try {
+                  await createCourseAction({ name: newName, credits: Number(newCredits) || 0, color: newColor, type: (newType === "mandatory" || newType === "mo") ? newType : null });
+                  toast({ type: "success", message: "Course created" });
+                } catch (e: any) {
+                  toast({ type: "error", message: e?.message || "Create failed" });
+                }
                 setNewName("");
+                router.refresh();
               })}
               disabled={!newName.trim() || creating}
             >
@@ -149,7 +187,15 @@ export function CourseManager({ initial }: { initial: Row[] }) {
           <Button
             variant="destructive"
             disabled={!mergeFrom || !mergeTo || mergeFrom === mergeTo || merging}
-            onClick={() => startMerging(async () => { await mergeCoursesAction(mergeFrom, mergeTo); })}
+            onClick={() => startMerging(async () => {
+              try {
+                await mergeCoursesAction(mergeFrom, mergeTo);
+                toast({ type: "success", message: "Courses merged" });
+              } catch (e: any) {
+                toast({ type: "error", message: e?.message || "Merge failed" });
+              }
+              router.refresh();
+            })}
           >
             {merging ? "Merging…" : "Merge"}
           </Button>
