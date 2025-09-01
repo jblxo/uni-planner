@@ -29,8 +29,9 @@ export function ConflictEliminator({ initial }: { initial: Conflict[] }) {
     try {
       await setCourseArchivedAction(archiveId, true);
       toast({ type: "success", message: "Decision saved" });
-    } catch (e: any) {
-      toast({ type: "error", message: e?.message || "Action failed" });
+    } catch (e: unknown) {
+      const error = e as Error;
+      toast({ type: "error", message: error?.message || "Action failed" });
     }
     // Remove all conflicts involving the archived course
     setConflicts((prev) => prev.filter((c) => c.a.courseId !== archiveId && c.b.courseId !== archiveId));

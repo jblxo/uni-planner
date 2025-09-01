@@ -21,8 +21,9 @@ export function ArchiveManager({ initial }: { initial: Row[] }) {
     try {
       await setCourseArchivedAction(id, false);
       toast({ type: "success", message: "Course reactivated" });
-    } catch (e: any) {
-      toast({ type: "error", message: e?.message || "Reactivation failed" });
+    } catch (e: unknown) {
+      const error = e as Error;
+      toast({ type: "error", message: error?.message || "Reactivation failed" });
     }
     setReactivatingId("");
     router.refresh();

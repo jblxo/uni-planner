@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Day, buildWeeksFromDates, weekKeyForDate } from "@/lib/weeks";
 import { MIN_HOUR, MAX_HOUR, rangesOverlap, timeToMinutes } from "@/lib/time";
 import { ScheduleGrid } from "./ScheduleGrid";
@@ -39,7 +41,8 @@ export function Planner({ initialLectures, initialCourses }: Props) {
   }, [weeksDynamic, selectedWeek]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [statusMsg, setStatusMsg] = useState<string>("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const toast = useToast();
 
   // Per-course custom colors
@@ -147,12 +150,11 @@ export function Planner({ initialLectures, initialCourses }: Props) {
             end,
           });
           setEditingId(null);
-          setStatusMsg("Saved");
           toast({ type: "success", message: "Lecture saved" });
           router.refresh();
-          setTimeout(() => setStatusMsg(""), 1200);
-        } catch (e: any) {
-          toast({ type: "error", message: e?.message || "Failed to save" });
+        } catch (e: unknown) {
+          const error = e as Error;
+          toast({ type: "error", message: error?.message || "Failed to save" });
         }
       });
     } else {
@@ -173,12 +175,11 @@ export function Planner({ initialLectures, initialCourses }: Props) {
           });
           setName("");
           setDrafts([{ date: "", start: "09:00", end: "10:30" }]);
-          setStatusMsg("Added");
           toast({ type: "success", message: "Sessions added" });
           router.refresh();
-          setTimeout(() => setStatusMsg(""), 1200);
-        } catch (e: any) {
-          toast({ type: "error", message: e?.message || "Failed to add sessions" });
+        } catch (e: unknown) {
+          const error = e as Error;
+          toast({ type: "error", message: error?.message || "Failed to add sessions" });
         }
       });
     }
@@ -189,8 +190,9 @@ export function Planner({ initialLectures, initialCourses }: Props) {
     try {
       await deleteLectureAction(id);
       toast({ type: "success", message: "Lecture deleted" });
-    } catch (e: any) {
-      toast({ type: "error", message: e?.message || "Delete failed" });
+    } catch (e: unknown) {
+      const error = e as Error;
+      toast({ type: "error", message: error?.message || "Delete failed" });
     } finally {
       setDeletingId("");
       router.refresh();
@@ -244,79 +246,88 @@ export function Planner({ initialLectures, initialCourses }: Props) {
       </div>
 
       <section className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-        <h2 className="text-base font-semibold mb-3">{editingId ? "Edit lecture" : "Add lecture"}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
-          <div className="sm:col-span-2">
-            <Label htmlFor="name">Course name</Label>
-            <Input id="name" placeholder="Algorithms" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="credits">Credits</Label>
-            <Input
-              id="credits"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={0.5}
-              value={credits}
-              onChange={(e) => setCredits(e.target.value)}
-            />
-          </div>
-          {editingId ? (
-            <>
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="start">Start</Label>
-                <Input id="start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="end">End</Label>
-                <Input id="end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
-              </div>
-            </>
-          ) : (
-            <div className="sm:col-span-7">
-              <Label>Sessions</Label>
-              <div className="mt-2 space-y-3">
-                {drafts.map((d, i) => (
-                  <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end rounded border border-neutral-200 dark:border-neutral-800 p-3">
-                    <div>
-                      <Label>Date</Label>
-                      <Input type="date" value={d.date} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)))} />
-                    </div>
-                    <div>
-                      <Label>Start</Label>
-                      <Input type="time" value={d.start} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))} />
-                    </div>
-                    <div>
-                      <Label>End</Label>
-                      <Input type="time" value={d.end} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))} />
-                    </div>
-                    <div>
-                      <Button variant="secondary" onClick={() => setDrafts((prev) => prev.filter((_, j) => j !== i))}>Remove</Button>
-                    </div>
-                  </div>
-                ))}
-                <Button variant="secondary" onClick={() => setDrafts((prev) => [...prev, { date: "", start: "09:00", end: "10:30" }])}>Add session</Button>
-              </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Lectures</h2>
+          <Button onClick={() => { setAddOpen(true); setEditingId(null); setName(""); setDate(""); setStart("09:00"); setEnd("10:30"); setDrafts([{ date: "", start: "09:00", end: "10:30" }]); }}>Add lecture</Button>
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete lecture"
+        message={"This action permanently removes the lecture. Type DELETE to confirm."}
+        requireText="DELETE"
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={async () => { const id = confirmDeleteId!; setConfirmDeleteId(null); await removeLecture(id); }}
+        confirmLabel="Delete"
+        variant="destructive"
+      />
+
+      <Dialog open={addOpen || !!editingId} onOpenChange={(v) => { if (!v) { setAddOpen(false); setEditingId(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit lecture" : "Add lecture"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
+            <div className="sm:col-span-2">
+              <Label htmlFor="name">Course name</Label>
+              <Input id="name" placeholder="Algorithms" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-          )}
-          <div className="sm:col-span-7 flex gap-2 items-center">
+            <div>
+              <Label htmlFor="credits">Credits</Label>
+              <Input id="credits" type="number" inputMode="numeric" min={0} step={0.5} value={credits} onChange={(e) => setCredits(e.target.value)} />
+            </div>
+            {editingId ? (
+              <>
+                <div>
+                  <Label htmlFor="date">Date</Label>
+                  <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="start">Start</Label>
+                  <Input id="start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="end">End</Label>
+                  <Input id="end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+                </div>
+              </>
+            ) : (
+              <div className="sm:col-span-7">
+                <Label>Sessions</Label>
+                <div className="mt-2 space-y-3">
+                  {drafts.map((d, i) => (
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end rounded border border-neutral-200 dark:border-neutral-800 p-3">
+                      <div>
+                        <Label>Date</Label>
+                        <Input type="date" value={d.date} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)))} />
+                      </div>
+                      <div>
+                        <Label>Start</Label>
+                        <Input type="time" value={d.start} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))} />
+                      </div>
+                      <div>
+                        <Label>End</Label>
+                        <Input type="time" value={d.end} onChange={(e) => setDrafts((prev) => prev.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))} />
+                      </div>
+                      <div>
+                        <Button variant="secondary" onClick={() => setDrafts((prev) => prev.filter((_, j) => j !== i))}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="secondary" onClick={() => setDrafts((prev) => [...prev, { date: "", start: "09:00", end: "10:30" }])}>Add session</Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setAddOpen(false); setEditingId(null); }}>Cancel</Button>
             <Button onClick={addOrSaveLecture} disabled={isPending}>
               {isPending ? (editingId ? "Saving…" : "Adding…") : editingId ? "Save" : "Add"}
             </Button>
-            {editingId && (
-              <Button variant="secondary" onClick={() => { setEditingId(null); setName(""); }} disabled={isPending}>
-                Cancel
-              </Button>
-            )}
-            {statusMsg && <div className="text-sm text-green-600 dark:text-green-400">{statusMsg}</div>}
-          </div>
-        </div>
-      </section>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <section className="space-y-3">
         <div className="flex flex-wrap gap-2">
@@ -346,7 +357,7 @@ export function Planner({ initialLectures, initialCourses }: Props) {
         <ScheduleGrid
           weekKey={selectedWeek}
           lectures={lectures}
-          onDelete={removeLecture}
+          onDelete={(id) => setConfirmDeleteId(id)}
           onEdit={beginEdit}
           getColor={(name) => effectiveColor(name)}
         />
@@ -398,8 +409,9 @@ export function Planner({ initialLectures, initialCourses }: Props) {
                     try {
                       await setCourseColorAction(c, value);
                       toast({ type: "success", message: "Color updated" });
-                    } catch (e: any) {
-                      toast({ type: "error", message: e?.message || "Failed to update color" });
+                    } catch (e: unknown) {
+                      const error = e as Error;
+                      toast({ type: "error", message: error?.message || "Failed to update color" });
                     }
                     router.refresh();
                   }}

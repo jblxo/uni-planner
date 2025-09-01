@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateCourseAction, mergeCoursesAction, createCourseAction, setCourseArchivedAction } from "@/app/actions";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Row = { id: string; name: string; credits: number; color: string | null; sessionCount: number; type: string | null };
 
@@ -24,6 +25,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
   const [creating, startCreating] = useTransition();
   const [merging, startMerging] = useTransition();
   const [archivingId, setArchivingId] = useState<string>("");
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <div className="mx-auto max-w-[900px] space-y-6">
@@ -87,8 +89,9 @@ export function CourseManager({ initial }: { initial: Row[] }) {
                       try {
                         await updateCourseAction(r.id, { name: r.name.trim(), credits: r.credits, color: r.color ?? undefined, type: (r.type === "mandatory" || r.type === "mo") ? r.type : null });
                         toast({ type: "success", message: "Course saved" });
-                      } catch (e: any) {
-                        toast({ type: "error", message: e?.message || "Save failed" });
+                      } catch (e: unknown) {
+                        const error = e as Error;
+                        toast({ type: "error", message: error?.message || "Save failed" });
                       }
                       setSavingId("");
                       router.refresh();
@@ -101,18 +104,7 @@ export function CourseManager({ initial }: { initial: Row[] }) {
                     variant="destructive"
                     className="ml-2"
                     disabled={archivingId === r.id}
-                    onClick={async () => {
-                      if (!confirm(`Archive course "${r.name}"? You can restore it later in Archive.`)) return;
-                      setArchivingId(r.id);
-                      try {
-                        await setCourseArchivedAction(r.id, true);
-                        toast({ type: "info", message: "Course archived" });
-                      } catch (e: any) {
-                        toast({ type: "error", message: e?.message || "Archive failed" });
-                      }
-                      setArchivingId("");
-                      router.refresh();
-                    }}
+                    onClick={() => setArchiveTarget({ id: r.id, name: r.name })}
                   >
                     {archivingId === r.id ? "Archiving…" : "Archive"}
                   </Button>
@@ -153,8 +145,9 @@ export function CourseManager({ initial }: { initial: Row[] }) {
                 try {
                   await createCourseAction({ name: newName, credits: Number(newCredits) || 0, color: newColor, type: (newType === "mandatory" || newType === "mo") ? newType : null });
                   toast({ type: "success", message: "Course created" });
-                } catch (e: any) {
-                  toast({ type: "error", message: e?.message || "Create failed" });
+                } catch (e: unknown) {
+                  const error = e as Error;
+                  toast({ type: "error", message: error?.message || "Create failed" });
                 }
                 setNewName("");
                 router.refresh();
@@ -191,8 +184,9 @@ export function CourseManager({ initial }: { initial: Row[] }) {
               try {
                 await mergeCoursesAction(mergeFrom, mergeTo);
                 toast({ type: "success", message: "Courses merged" });
-              } catch (e: any) {
-                toast({ type: "error", message: e?.message || "Merge failed" });
+              } catch (e: unknown) {
+                const error = e as Error;
+                toast({ type: "error", message: error?.message || "Merge failed" });
               }
               router.refresh();
             })}
@@ -201,6 +195,28 @@ export function CourseManager({ initial }: { initial: Row[] }) {
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={!!archiveTarget}
+        title="Archive course"
+        message={archiveTarget ? `Archive "${archiveTarget.name}"? You can restore it later in Archive.` : ""}
+        onCancel={() => setArchiveTarget(null)}
+        onConfirm={async () => {
+          if (!archiveTarget) return;
+          setArchivingId(archiveTarget.id);
+          try {
+            await setCourseArchivedAction(archiveTarget.id, true);
+            toast({ type: "info", message: "Course archived" });
+          } catch (e: unknown) {
+            const error = e as Error;
+            toast({ type: "error", message: error?.message || "Archive failed" });
+          }
+          setArchivingId("");
+          setArchiveTarget(null);
+          router.refresh();
+        }}
+        confirmLabel="Archive"
+        variant="destructive"
+      />
     </div>
   );
 }
